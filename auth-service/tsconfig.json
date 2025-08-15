@@ -1,0 +1,38 @@
+{
+  "name": "auth-service",
+  "compilerOptions": {
+
+    "module": "Node16",
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "composite": true,
+    "esModuleInterop": true,
+    
+
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+
+    "strict": true,
+    "strictNullChecks": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  }
+}

@@ -1,0 +1,5 @@
+auth-service/node_modules/
+auth-service/dist/
+auth-service/.env/
+.env
+/src/generated/prisma

@@ -1,0 +1,509 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// You'll typically have your data source and generator defined here.
+// For PostgreSQL, it would look something like this:
+datasource db {
+  provider = "postgresql" // Or "mysql", "mongodb, etc.
+  url      = env("PR_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- Models ---
+
+// The Company model, now with additional fields and relations to Employees and Departments
+model Company {
+  id                  String    @id @default(uuid()) @db.Uuid // Primary key, defaults to a UUID
+  name                String    @db.VarChar(255) // Increased length for name
+  domain              String    @unique @db.VarChar(255) // Unique and not null
+  industry            String?   @db.VarChar(100) // Nullable
+  companySize         String?   @map("company_size") @db.VarChar(50) // Nullable, maps to snake_case
+  subscriptionPlan    String    @map("subscription_plan") @db.VarChar(100)
+  subscriptionStatus  String    @default("active") @map("subscription_status") @db.VarChar(50) // Default status is "active"
+  billingCycle        String    @default("monthly") @map("billing_cycle") @db.VarChar(20) // Default billing cycle
+  maxEmployees        Int       @default(100) @map("max_employees") // Default max employees
+  maxStorageGb        Int       @default(100) @map("max_storage_gb") // Default max storage
+
+  users               User[]    // A company can have many users
+  settings            CompanySetting[] // A company can have many settings
+  employees           Employee[] // A company can have many employees
+  departments         Department[] // A company can have many departments
+  positions           Position[] // A company can have many positions
+  payrollPeriods      PayrollPeriod[] // A company can have many payroll periods
+  employeePayrolls    EmployeePayroll[] @relation("CompanyEmployeePayrolls") // Explicit relation for employee payrolls (Company to EmployeePayroll)
+  timeRecords         TimeRecord[] // A company can have many time records
+  leaveRequests       LeaveRequest[] // A company can have many leave requests
+  performanceReviews  PerformanceReview[] // A company can have many performance reviews
+  trainingPrograms    TrainingProgram[] // A company can have many training programs
+  trainingEnrollments TrainingEnrollment[] // A company can have many training enrollments
+
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamp(6) // Nullable for soft deletes
+
+  // Constraints:
+  @@index([subscriptionStatus, subscriptionPlan]) // Index for faster queries on subscription status and plan
+
+  @@map("companies") // Maps the model name to a table name if different
+}
+
+// Your User model, now with a potential relation to an Employee profile
+model User {
+  id                      String    @id @default(uuid()) @db.Uuid // Primary key, defaults to a UUID
+  companyId               String    @map("company_id") @db.Uuid  // Foreign key for Company
+  company                 Company   @relation(fields: [companyId], references: [id], onDelete: Cascade) // Relation to the Company model
+
+  email                   String    @db.VarChar(255)
+  password                String    @db.VarChar(255)
+  firstName               String    @map("first_name") @db.VarChar(100)
+  lastName                String    @map("last_name") @db.VarChar(100)
+  role                    String    @db.VarChar(50)
+  status                  String    @default("active") @db.VarChar(20) // Default status is "active"
+  lastLogin               DateTime? @map("last_login") @db.Timestamp(6) // Nullable, as it might not be set initially
+  failedLoginAttempts     Int       @default(0) @map("failed_login_attempts") // Default to 0 failed attempts
+  lockedUntil             DateTime? @map("locked_until") @db.Timestamp(6) // Nullable, set when an account is locked
+  mfaEnabled              Boolean   @default(false) @map("mfa_enabled") // Multi-factor authentication enabled status
+  mfaSecret               String?   @map("mfa_secret") @db.VarChar(255) // Nullable, stores the MFA secret if enabled
+
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamp(6) // Timestamp for creation
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamp(6) // Automatically updates on record changes
+  deletedAt               DateTime? @map("deleted_at") @db.Timestamp(6) // Nullable, for soft deletes
+
+  sessions                UserSession[] // A user can have many sessions
+  employee                Employee?     // An optional relation to an Employee profile
+  correctedTimeRecords    TimeRecord[] @relation("TimeRecordCorrection") // Time records corrected by this user
+  approvedLeaveRequests   LeaveRequest[] @relation("LeaveApproval") // Leave requests approved by this user
+
+  // Constraints:
+  @@unique([email, companyId]) // Ensures email is unique per company
+  @@index([companyId, role])   // Index for faster queries on company and role
+  @@index([status])            // Index for faster queries on status
+
+  @@map("users") // Maps the model name to the database table name
+}
+
+// CompanySetting model
+model CompanySetting {
+  companyId    String    @map("company_id") @db.Uuid // Foreign key for Company
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade) // Relation to the Company model
+
+  settingKey   String    @map("setting_key") @db.VarChar(100)
+  settingValue Json?     @map("setting_value") @db.JsonB // 'Json' type for jsonB, nullable
+
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Composite primary key
+  @@id([companyId, settingKey])
+  @@map("company_settings") // Maps the model name to the database table name
+}
+
+// UserSession model for JWT management
+model UserSession {
+  id            String    @id @default(uuid()) @db.Uuid // Primary key for the session
+  userId        String    @map("user_id") @db.Uuid      // Foreign key to the User model
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade) // Relation to the User model
+
+  sessionToken  String    @map("session_token") @db.VarChar(500) // JWT session token
+  refreshToken  String    @map("refresh_token") @db.VarChar(500) // Token for refreshing the session
+  deviceInfo    Json?     @map("device_info") @db.JsonB         // Device information as JSONB
+  ipAddress     String?   @map("ip_address") @db.Inet           // IP address of the session, nullable
+
+  expiresAt     DateTime  @map("expires_at") @db.Timestamp(6)   // When the session expires
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6) // When the session was created
+
+  // Indexes for faster lookups
+  @@index([userId])
+  @@index([expiresAt])
+
+  @@map("user_sessions") // Maps the model name to the database table name
+}
+
+// Employee profiles with full organizational hierarchy
+model Employee {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  userId                String?   @unique @map("user_id") @db.Uuid // One-to-one or one-to-optional relation with User
+  user                  User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  employeeId            String    @map("employee_id") @db.VarChar(50) // Company's internal ID
+  firstName             String    @map("first_name") @db.VarChar(100)
+  lastName              String    @map("last_name") @db.VarChar(100)
+  email                 String    @db.VarChar(255)
+  phone                 String?   @db.VarChar(20)
+  dateOfBirth           DateTime? @map("date_of_birth") @db.Date
+  gender                String?   @db.VarChar(20)
+  maritalStatus         String?   @map("marital_status") @db.VarChar(20)
+  nationality           String?   @map("nationality") @db.VarChar(100)
+
+  // Employment details
+  hireDate              DateTime  @map("hire_date") @db.Date
+  terminationDate       DateTime? @map("termination_date") @db.Date
+  employmentStatus      String    @default("active") @map("employment_status") @db.VarChar(50) // active, terminated, suspended, on_leave
+  employmentType        String    @map("employment_type") @db.VarChar(50) // full_time, part_time, contract, intern
+  probationEndDate      DateTime? @map("probation_end_date") @db.Date
+
+  // Organizational details
+  departmentId          String?   @map("department_id") @db.Uuid
+  department            Department? @relation("EmployeesInDepartment", fields: [departmentId], references: [id])
+
+  positionId            String?   @map("position_id") @db.Uuid
+  position              Position? @relation(fields: [positionId], references: [id])
+
+  managerId             String?   @map("manager_id") @db.Uuid // Self-referencing manager
+  manager               Employee? @relation("DirectReports", fields: [managerId], references: [id])
+  directReports         Employee[] @relation("DirectReports") // Employees reporting to this manager
+  directReportsCount    Int       @default(0) @map("direct_reports_count")
+
+  // Compensation
+  baseSalary            Decimal?  @map("base_salary") @db.Decimal(12, 2)
+  currency              String    @default("USD") @db.VarChar(3)
+  payFrequency          String    @default("monthly") @map("pay_frequency") @db.VarChar(20)
+
+  // System fields
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt             DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  employeePayrolls      EmployeePayroll[] // Employee's individual payroll records (no custom relation name needed here)
+  timeRecords           TimeRecord[] // Employee's time tracking records
+  leaveRequests         LeaveRequest[] // Employee's leave requests
+  performanceReviews    PerformanceReview[] @relation("ReviewedEmployee") // Performance reviews where this employee is being reviewed
+  reviewedPerformances  PerformanceReview[] @relation("Reviewer") // Performance reviews where this employee is the reviewer
+  managedDepartments    Department[] @relation("ManagedDepartment") // Departments managed by this employee
+  trainingEnrollments   TrainingEnrollment[] // Employee's training enrollments
+
+  // Performance indexes
+  @@index([companyId, employmentStatus])
+  @@index([departmentId])
+  @@index([managerId])
+  @@index([hireDate])
+
+  @@map("employees")
+}
+
+// Departments with hierarchical structure
+model Department {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name                  String    @db.VarChar(100)
+  description           String?   @db.Text
+
+  parentDepartmentId    String?   @map("parent_department_id") @db.Uuid // Self-referencing parent department
+  parentDepartment      Department? @relation("SubDepartments", fields: [parentDepartmentId], references: [id])
+  subDepartments        Department[] @relation("SubDepartments") // Sub-departments under this department
+
+  managerId             String?   @map("manager_id") @db.Uuid // Manager of the department
+  manager               Employee? @relation("ManagedDepartment", fields: [managerId], references: [id]) // Relation to Employee
+
+  budget                Decimal?  @db.Decimal(15, 2)
+  headcountLimit        Int?      @map("headcount_limit")
+
+  employees             Employee[] @relation("EmployeesInDepartment") // Employees belonging to this department
+  positions             Position[] // Positions within this department
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Indexes
+  @@index([companyId])
+  @@index([parentDepartmentId])
+
+  @@map("departments")
+}
+
+// Positions and job descriptions
+model Position {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title                 String    @db.VarChar(100)
+  description           String?   @db.Text
+
+  departmentId          String?   @map("department_id") @db.Uuid
+  department            Department? @relation(fields: [departmentId], references: [id])
+
+  level                 Int       @default(1)
+  minSalary             Decimal?  @map("min_salary") @db.Decimal(12, 2)
+  maxSalary             Decimal?  @map("max_salary") @db.Decimal(12, 2)
+
+  requirements          Json?     @db.JsonB
+  responsibilities      Json?     @db.JsonB
+
+  employees             Employee[] // Employees holding this position
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("positions")
+}
+
+// Payroll periods and calculations
+model PayrollPeriod {
+  id                  String      @id @default(uuid()) @db.Uuid
+  companyId           String      @map("company_id") @db.Uuid
+  company             Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  periodName          String      @map("period_name") @db.VarChar(100)
+  periodStart         DateTime    @map("period_start") @db.Date
+  periodEnd           DateTime    @map("period_end") @db.Date
+  status              String      @default("draft") @db.VarChar(50) // draft, processing, completed, paid
+
+  totalGrossPay       Decimal     @default(0) @map("total_gross_pay") @db.Decimal(15, 2)
+  totalDeductions     Decimal     @default(0) @map("total_deductions") @db.Decimal(15, 2)
+  totalTaxes          Decimal     @default(0) @map("total_taxes") @db.Decimal(15, 2)
+  totalNetPay         Decimal     @default(0) @map("total_net_pay") @db.Decimal(15, 2)
+  employeeCount       Int         @default(0) @map("employee_count")
+
+  processedAt         DateTime?   @map("processed_at") @db.Timestamp(6)
+  paidAt              DateTime?   @map("paid_at") @db.Timestamp(6)
+
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  employeePayrolls    EmployeePayroll[] // Individual employee payroll records for this period
+
+  // Index for company and period range
+  @@index([companyId, periodStart, periodEnd])
+  @@map("payroll_periods")
+}
+
+// Individual employee payroll records
+model EmployeePayroll {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation("CompanyEmployeePayrolls", fields: [companyId], references: [id], onDelete: Cascade) // Company to EmployeePayroll relation
+
+  employeeId            String    @map("employee_id") @db.Uuid
+  employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade) // Employee to EmployeePayroll relation
+
+  payrollPeriodId       String    @map("payroll_period_id") @db.Uuid
+  payrollPeriod         PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+
+  // Earnings
+  baseSalary            Decimal   @map("base_salary") @db.Decimal(12, 2)
+  overtimePay           Decimal   @default(0) @map("overtime_pay") @db.Decimal(12, 2)
+  bonusPay              Decimal   @default(0) @map("bonus_pay") @db.Decimal(12, 2)
+  commissionPay         Decimal   @default(0) @map("commission_pay") @db.Decimal(12, 2)
+  otherEarnings         Decimal   @default(0) @map("other_earnings") @db.Decimal(12, 2)
+  totalEarnings         Decimal   @map("total_earnings") @db.Decimal(12, 2)
+
+  // Deductions
+  taxWithholding        Decimal   @default(0) @map("tax_withholding") @db.Decimal(12, 2)
+  socialSecurity        Decimal   @default(0) @map("social_security") @db.Decimal(12, 2)
+  medicare              Decimal   @default(0) @db.Decimal(12, 2)
+  healthInsurance       Decimal   @default(0) @map("health_insurance") @db.Decimal(12, 2)
+  retirementContribution Decimal  @default(0) @map("retirement_contribution") @db.Decimal(12, 2)
+  otherDeductions       Decimal   @default(0) @map("other_deductions") @db.Decimal(12, 2)
+  totalDeductions       Decimal   @default(0) @map("total_deductions") @db.Decimal(12, 2)
+
+  // Final amounts
+  netPay                Decimal   @map("net_pay") @db.Decimal(12, 2)
+
+  // Status
+  status                String    @default("pending") @db.VarChar(50) // pending, calculated, approved, paid
+  calculatedAt          DateTime? @map("calculated_at") @db.Timestamp(6)
+  approvedAt            DateTime? @map("approved_at") @db.Timestamp(6)
+  paidAt                DateTime? @map("paid_at") @db.Timestamp(6)
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Indexes
+  @@unique([employeeId, payrollPeriodId]) // Ensures one payroll record per employee per period
+  @@index([companyId, status])
+
+  @@map("employee_payroll")
+}
+
+// Time tracking records with GPS and device validation
+model TimeRecord {
+  id                  String    @id @default(uuid()) @db.Uuid
+  companyId           String    @map("company_id") @db.Uuid
+  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeId          String    @map("employee_id") @db.Uuid
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Time details
+  clockIn             DateTime  @map("clock_in") @db.Timestamp(6)
+  clockOut            DateTime? @map("clock_out") @db.Timestamp(6)
+  totalHours          Decimal?  @map("total_hours") @db.Decimal(5, 2) // Nullable as it's calculated on clock out
+
+  // Location and device
+  clockInLocation     Json?     @map("clock_in_location") @db.JsonB // {lat: 40.7128, lng: -74.0060, accuracy: 10}
+  clockOutLocation    Json?     @map("clock_out_location") @db.JsonB
+  deviceId            String?   @map("device_id") @db.VarChar(100)
+  deviceType          String?   @map("device_type") @db.VarChar(50) // mobile, desktop, kiosk, biometric
+
+  // Validation
+  isVerified          Boolean   @default(false) @map("is_verified")
+  verificationMethod  String?   @map("verification_method") @db.VarChar(50) // gps, ip, biometric, manual
+  notes               String?   @db.Text
+
+  // Status
+  status              String    @default("active") @db.VarChar(50) // active, corrected, deleted
+  correctedById       String?   @map("corrected_by") @db.Uuid // User who corrected the record
+  correctedBy         User?     @relation("TimeRecordCorrection", fields: [correctedById], references: [id])
+  correctionReason    String?   @db.Text
+
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Indexes
+  @@index([employeeId, clockIn(sort: Desc)]) // Efficient lookup by employee and date
+  @@index([companyId, status])
+
+  @@map("time_records")
+}
+
+// Leave management with approval workflows
+model LeaveRequest {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeId            String    @map("employee_id") @db.Uuid
+  employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Leave details
+  leaveType             String    @map("leave_type") @db.VarChar(50) // vacation, sick, personal, maternity, paternity
+  startDate             DateTime  @map("start_date") @db.Date
+  endDate               DateTime  @map("end_date") @db.Date
+  totalDays             Decimal   @map("total_days") @db.Decimal(4, 1) // e.g., 0.5 for half-day
+  reason                String?   @db.Text
+
+  // Approval workflow
+  status                String    @default("pending") @db.VarChar(50) // pending, approved, rejected, cancelled
+  requestedAt           DateTime  @map("requested_at") @db.Timestamp(6)
+  approvedById          String?   @map("approved_by") @db.Uuid // User who approved the request
+  approvedBy            User?     @relation("LeaveApproval", fields: [approvedById], references: [id])
+  approvedAt            DateTime? @map("approved_at") @db.Timestamp(6)
+  rejectionReason       String?   @map("rejection_reason") @db.Text
+
+  // Leave balance tracking
+  leaveBalanceBefore    Decimal?  @map("leave_balance_before") @db.Decimal(4, 1)
+  leaveBalanceAfter     Decimal?  @map("leave_balance_after") @db.Decimal(4, 1)
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Indexes
+  @@index([employeeId, status])
+  @@index([companyId, startDate, endDate])
+
+  @@map("leave_requests")
+}
+// Performance reviews with 360-degree feedback
+model PerformanceReview {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeId            String    @map("employee_id") @db.Uuid
+  employee              Employee  @relation("ReviewedEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  reviewerId            String    @map("reviewer_id") @db.Uuid
+  reviewer              Employee  @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  // Review details
+  reviewPeriod          String    @map("review_period") @db.VarChar(100) // "Q1 2024", "Annual 2024"
+  reviewType            String    @map("review_type") @db.VarChar(50) // self, manager, peer, 360
+  reviewDate            DateTime  @map("review_date") @db.Date
+
+  // Performance ratings
+  overallRating         Decimal?  @map("overall_rating") @db.Decimal(3, 1) // 1.0 to 5.0
+  technicalSkills       Decimal?  @map("technical_skills") @db.Decimal(3, 1)
+  communicationSkills   Decimal?  @map("communication_skills") @db.Decimal(3, 1)
+  leadershipSkills      Decimal?  @map("leadership_skills") @db.Decimal(3, 1)
+  teamwork              Decimal?  @db.Decimal(3, 1)
+  initiative            Decimal?  @db.Decimal(3, 1)
+
+  // Feedback
+  strengths             String?   @db.Text
+  areasForImprovement   String?   @map("areas_for_improvement") @db.Text
+  goals                 String?   @db.Text
+  actionPlan            String?   @map("action_plan") @db.Text
+
+  // Status
+  status                String    @default("draft") @db.VarChar(50) // draft, submitted, reviewed, completed
+  submittedAt           DateTime? @map("submitted_at") @db.Timestamp(6)
+  completedAt           DateTime? @map("completed_at") @db.Timestamp(6)
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Performance indexes
+  @@index([employeeId, reviewPeriod])
+  @@index([reviewerId])
+
+  @@map("performance_reviews")
+}
+
+// Learning and training management
+model TrainingProgram {
+  id                        String    @id @default(uuid()) @db.Uuid
+  companyId                 String    @map("company_id") @db.Uuid
+  company                   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name                      String    @db.VarChar(255)
+  description               String?   @db.Text
+  category                  String?   @db.VarChar(100)
+  difficultyLevel           String?   @map("difficulty_level") @db.VarChar(20) // beginner, intermediate, advanced
+  estimatedDurationHours    Int?      @map("estimated_duration_hours")
+  prerequisites             Json?     @db.JsonB
+  learningObjectives        Json?     @map("learning_objectives") @db.JsonB
+  status                    String    @default("active") @db.VarChar(50) // active, inactive, archived
+
+  enrollments               TrainingEnrollment[] // Enrollments for this program
+
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("training_programs")
+}
+
+// Training enrollments and progress
+model TrainingEnrollment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  company               Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  employeeId            String    @map("employee_id") @db.Uuid
+  employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade) // Correctly linked to Employee
+
+  trainingProgramId     String    @map("training_program_id") @db.Uuid
+  trainingProgram       TrainingProgram @relation(fields: [trainingProgramId], references: [id], onDelete: Cascade)
+
+  // Enrollment details
+  enrollmentDate        DateTime  @map("enroll_date") @db.Date // Changed to enroll_date for clarity based on common usage
+  completionDeadline    DateTime? @map("completion_deadline") @db.Date
+  progressPercentage    Decimal   @default(0) @map("progress_percentage") @db.Decimal(5, 2)
+  currentModule         String?   @map("current_module") @db.VarChar(100)
+
+  // Assessment
+  finalScore            Decimal?  @map("final_score") @db.Decimal(5, 2)
+  certificationEarned   Boolean   @default(false) @map("certification_earned")
+  certificateUrl        String?   @map("certificate_url") @db.VarChar(500)
+
+  // Status
+  status                String    @default("enrolled") @db.VarChar(50) // enrolled, in_progress, completed, dropped
+  completedAt           DateTime? @map("completed_at") @db.Timestamp(6)
+
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  // Indexes
+  @@unique([employeeId, trainingProgramId]) // Ensures one enrollment per employee per program
+  @@index([companyId, status])
+
+  @@map("training_enrollments")
+}
