@@ -1,8 +1,8 @@
 {
   "name": "auth-service",
   "compilerOptions": {
-
-    "module": "Node16",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "target": "ES2020",
     "lib": ["ES2020"],
     "types": ["node"],
@@ -10,7 +10,6 @@
     "outDir": "./dist",
     "composite": true,
     "esModuleInterop": true,
-    
 
     "sourceMap": true,
     "declaration": true,
@@ -26,13 +25,12 @@
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
 
-
     "strict": true,
     "strictNullChecks": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }

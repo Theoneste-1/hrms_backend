@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "public"."UserRole" AS ENUM ('SUPER_ADMIN', 'COMPANY_ADMIN', 'EMPLOYEE', 'MANAGER', 'INTERN', 'TRAINER', 'AUDITOR', 'HR', 'PAYROLL_MANAGER');
+
 -- CreateTable
 CREATE TABLE "public"."companies" (
     "id" UUID NOT NULL,
@@ -25,7 +28,7 @@ CREATE TABLE "public"."users" (
     "password" VARCHAR(255) NOT NULL,
     "first_name" VARCHAR(100) NOT NULL,
     "last_name" VARCHAR(100) NOT NULL,
-    "role" VARCHAR(50) NOT NULL,
+    "role" "public"."UserRole" NOT NULL,
     "status" VARCHAR(20) NOT NULL DEFAULT 'active',
     "last_login" TIMESTAMP(6),
     "failed_login_attempts" INTEGER NOT NULL DEFAULT 0,

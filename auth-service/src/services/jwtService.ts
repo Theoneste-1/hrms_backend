@@ -6,7 +6,7 @@ dotenv.config();
 // Define StringValue as a union of valid expiration strings
 type StringValue = `${number}${"h" | "m" | "d" | "s"}`; // e.g., "60m", "7d", "1h"
 
-interface JwtPayload {
+export interface JwtPayload {
   userId: string;
   companyId: string;
   email: string;

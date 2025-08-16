@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { JwtService } from './jwtService.js';
-import type { JwtPayload } from 'jsonwebtoken';
+import { JwtService,type JwtPayload } from './jwtService.js';
+
 
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
@@ -198,6 +198,10 @@ export class RbacService {
     const permissions = rolePermissions[role];
     return permissions ? permissions.has(permission) : false;
   }
+  queryPermissions(role: UserRole): Permission[] {
+    const permissions = rolePermissions[role];
+    return permissions ? Array.from(permissions) : [];
+  } 
 
   //Authorize the user for a specific route
   public authorize(requiredPerm: Permission[]) {
@@ -213,13 +217,12 @@ export class RbacService {
       }
 
       const user = this.jwtService.verifyAccessToken(token) as JwtPayload | null;
-
       if (!user) {
         return res.status(401).json({ message: "Unauthorized: Invalid token" });
       }
       (req as any).user = user;
 
-      const userRole = user['role'] as UserRole;
+      const userRole = user.role as UserRole; // Use dot notation for type safety
       if (!Object.values(UserRole).includes(userRole)) {
         return res.status(403).json({ message: "Forbidden: Invalid role" });
       }
@@ -233,9 +236,81 @@ export class RbacService {
       next();
     };
   }
+//   public authorize(requiredPerm: Permission[]) { 
+
+//     return (req: Request, res: Response, next: NextFunction) => {
+//       const authHeader = req.headers.authorization;
+//       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//         return res.status(401).json({ message: "Unauthorized: No token provided" });
+//       }
+
+//       const token = authHeader.split(' ')[1];
+//       if (!token) {
+//         return res.status(401).json({ message: "Unauthorized: Invalid token format" });
+//       }
+
+//       const user = this.jwtService.verifyAccessToken(token) as JwtPayload | null;
+
+//       if (!user) {
+//         return res.status(401).json({ message: "Unauthorized: Invalid token" });
+//       }
+//       (req as any).user = user;
+
+//       const userRole = user['role'] as UserRole;
+//       if (!Object.values(UserRole).includes(userRole)) {
+//         return res.status(403).json({ message: "Forbidden: Invalid role" });
+//       }
+//       if (userRole === UserRole.SUPER_ADMIN) {
+//         return next();
+//       }
+//       const hasOneOfPerm = requiredPerm.some((perm) => this.hasPerm(userRole, perm));
+//       if (!hasOneOfPerm) {
+//         return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
+//       }
+//       next();
+//     };
+//   }
 
   //authorize a user for his /her own resources
-  public authOwnData(allowPermissions: Permission[], userIdParamName: string = "id") {
+//   public authOwnData(allowPermissions: Permission[], userIdParamName: string = "id") {
+//     return (req: Request, res: Response, next: NextFunction) => {
+//       const authHeader = req.headers.authorization;
+//       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//         return res.status(401).json({ message: "Unauthorized: No token provided" });
+//       }
+
+//       const token = authHeader.split(' ')[1];
+//       if (!token) {
+//         return res.status(401).json({ message: "Unauthorized: Invalid token format" });
+//       }
+
+//       const user = this.jwtService.verifyAccessToken(token) as JwtPayload | null;
+
+//       if (!user) {
+//         return res.status(401).json({ message: "Unauthorized: Invalid token" });
+//       }
+//       (req as any).user = user;
+
+//       const userRole = user['role'] as UserRole;
+//       const targetUserId = req.params[userIdParamName];
+//       if (!Object.values(UserRole).includes(userRole)) {
+//         return res.status(403).json({ message: "Forbidden: Invalid role" });
+//       }
+//       if (userRole === UserRole.SUPER_ADMIN) {
+//         return next();
+//       }
+//       if (user["userId"] === targetUserId) {
+//         return next();
+//       }
+//       const hasPerm = allowPermissions.some((perm) => this.hasPerm(userRole, perm));
+//       if (!hasPerm) {
+//         return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
+//       }
+//       next();
+//     };
+//   }
+// }
+public authOwnData(allowPermissions: Permission[], userIdParamName: string = "id") {
     return (req: Request, res: Response, next: NextFunction) => {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -248,13 +323,12 @@ export class RbacService {
       }
 
       const user = this.jwtService.verifyAccessToken(token) as JwtPayload | null;
-
       if (!user) {
         return res.status(401).json({ message: "Unauthorized: Invalid token" });
       }
       (req as any).user = user;
 
-      const userRole = user['role'] as UserRole;
+      const userRole = user.role as UserRole;
       const targetUserId = req.params[userIdParamName];
       if (!Object.values(UserRole).includes(userRole)) {
         return res.status(403).json({ message: "Forbidden: Invalid role" });
@@ -262,7 +336,7 @@ export class RbacService {
       if (userRole === UserRole.SUPER_ADMIN) {
         return next();
       }
-      if (user["userId"] === targetUserId) {
+      if (user.userId === targetUserId) {
         return next();
       }
       const hasPerm = allowPermissions.some((perm) => this.hasPerm(userRole, perm));
@@ -272,6 +346,6 @@ export class RbacService {
       next();
     };
   }
-}
 
+}      
 export const rbacService = new RbacService();

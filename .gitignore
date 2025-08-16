@@ -3,3 +3,6 @@ auth-service/dist/
 auth-service/.env/
 .env
 /src/generated/prisma
+.vscode/
+.DS_Store
+*/node_modules/*
