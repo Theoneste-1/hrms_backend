@@ -1,0 +1,61 @@
+// src/dto/employee.dto.ts
+import * as Joi from 'joi';
+
+export const CreateEmployeeDto = Joi.object({
+  companyId: Joi.string().uuid().required(),
+  userId: Joi.string().uuid().optional(),
+  employeeId: Joi.string().max(50).required(),
+  firstName: Joi.string().max(100).required(),
+  lastName: Joi.string().max(100).required(),
+  email: Joi.string().email().max(255).required(),
+  phone: Joi.string().max(20).optional(),
+  dateOfBirth: Joi.date().optional(),
+  gender: Joi.string().max(20).optional(),
+  maritalStatus: Joi.string().max(20).optional(),
+  nationality: Joi.string().max(100).optional(),
+  hireDate: Joi.date().required(),
+  terminationDate: Joi.date().optional(),
+  employmentStatus: Joi.string().max(50).default('active'),
+  employmentType: Joi.string().max(50).required(),
+  probationEndDate: Joi.date().optional(),
+  departmentId: Joi.string().uuid().optional(),
+  positionId: Joi.string().uuid().optional(),
+  managerId: Joi.string().uuid().optional(),
+  baseSalary: Joi.number().precision(2).optional(),
+  currency: Joi.string().max(3).default('USD'),
+  payFrequency: Joi.string().max(20).default('monthly'),
+});
+
+export const UpdateEmployeeDto = Joi.object({
+  userId: Joi.string().uuid().optional(),
+  employeeId: Joi.string().max(50).optional(),
+  firstName: Joi.string().max(100).optional(),
+  lastName: Joi.string().max(100).optional(),
+  email: Joi.string().email().max(255).optional(),
+  phone: Joi.string().max(20).optional(),
+  dateOfBirth: Joi.date().optional(),
+  gender: Joi.string().max(20).optional(),
+  maritalStatus: Joi.string().max(20).optional(),
+  nationality: Joi.string().max(100).optional(),
+  hireDate: Joi.date().optional(),
+  terminationDate: Joi.date().optional(),
+  employmentStatus: Joi.string().max(50).optional(),
+  employmentType: Joi.string().max(50).optional(),
+  probationEndDate: Joi.date().optional(),
+  departmentId: Joi.string().uuid().optional(),
+  positionId: Joi.string().uuid().optional(),
+  managerId: Joi.string().uuid().optional(),
+  baseSalary: Joi.number().precision(2).optional(),
+  currency: Joi.string().max(3).optional(),
+  payFrequency: Joi.string().max(20).optional(),
+});
+
+export const EmployeeQueryDto = Joi.object({
+  companyId: Joi.string().uuid().required(),
+  departmentId: Joi.string().uuid().optional(),
+  positionId: Joi.string().uuid().optional(),
+  managerId: Joi.string().uuid().optional(),
+  employmentStatus: Joi.string().optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
+});
