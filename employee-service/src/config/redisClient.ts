@@ -1,5 +1,6 @@
-import { createClient, RedisClientType } from 'redis';
-import { logger } from './logger';
+import { createClient } from 'redis';
+import type { RedisClientType } from 'redis'; 
+import { logger } from './logger.js';
 
 class RedisClient {
   private client: RedisClientType;
@@ -7,12 +8,12 @@ class RedisClient {
 
   constructor() {
     this.client = createClient({
-      url: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
-      password: process.env.REDIS_PASSWORD || undefined,
-      database: parseInt(process.env.REDIS_DB || '0'),
+      url: process.env['REDIS_URL'] || `redis://${process.env['REDIS_HOST'] || 'localhost'}:${process.env['REDIS_PORT'] || 6379}`,
+      password: process.env['REDIS_PASSWORD'] || '0',
+      database: parseInt(process.env['REDIS_DB'] || '0'),
       socket: {
         connectTimeout: 10000,
-        lazyConnect: true,
+        // lazyConnect: true,
       },
     });
 

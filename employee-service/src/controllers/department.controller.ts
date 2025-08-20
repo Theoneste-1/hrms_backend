@@ -1,14 +1,14 @@
 // src/controllers/department.controller.ts
-import { DepartmentService } from '../services/department.service';
+import { DepartmentService } from '../services/department.service.js';
 import { Request, Response, NextFunction } from 'express';
-import { CreateDepartmentDto, UpdateDepartmentDto, DepartmentQueryDto } from '../dto/department.dto';
+import { CreateDepartmentDto, UpdateDepartmentDto, DepartmentQueryDto } from '../dto/department.dto.js';
 
 const service = new DepartmentService();
 
 export class DepartmentController {
   async create(req: Request, res: Response, next: NextFunction) {
     const { error } = CreateDepartmentDto.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) return res.status(400).json({ error: error.details?.[0]?.message });
     try {
       const department = await service.create(req.body);
       res.status(201).json(department);
@@ -19,7 +19,7 @@ export class DepartmentController {
 
   async findAll(req: Request, res: Response, next: NextFunction) {
     const { error } = DepartmentQueryDto.validate(req.query);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) return res.status(400).json({ error: error.details?.[0]?.message });
     try {
       const departments = await service.findAll(req.query);
       res.json(departments);
@@ -30,7 +30,12 @@ export class DepartmentController {
 
   async findOne(req: Request, res: Response, next: NextFunction) {
     try {
-      const department = await service.findOne(req.params.id, req.query.companyId as string);
+      const id = req.params['id'];
+      if(!id) {
+        return res.status(400).json({ error: 'id is required' });
+        
+      }
+      const department = await service.findOne(id, req.query['companyId'] as string);
       res.json(department);
     } catch (err) {
       next(err);
@@ -39,9 +44,13 @@ export class DepartmentController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     const { error } = UpdateDepartmentDto.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) return res.status(400).json({ error: error.details?.[0]?.message });
     try {
-      const department = await service.update(req.params.id, req.body);
+      const id = req.params['id']
+      if(!id) {
+        return res.status(400).json({message: "Id is required"})
+      }
+      const department = await service.update(id, req.body);
       res.json(department);
     } catch (err) {
       next(err);
@@ -50,7 +59,11 @@ export class DepartmentController {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      const department = await service.remove(req.params.id, req.query.companyId as string);
+      const id = req.params['id']
+      if(!id) {
+        return res.status(400).json({message: "Id is required"})
+      }
+      const department = await service.remove(id, req.query['companyId'] as string);
       res.json(department);
     } catch (err) {
       next(err);

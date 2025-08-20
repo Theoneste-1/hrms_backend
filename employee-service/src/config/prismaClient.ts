@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { logger } from './logger';
+import { logger } from './logger.js';
 
 class PrismaService {
   private client: PrismaClient;
@@ -27,33 +27,33 @@ class PrismaService {
       ],
     });
 
-    this.setupEventHandlers();
+    // this.setupEventHandlers();
   }
 
-  private setupEventHandlers(): void {
-    // Query logging
-    this.client.$on('query', (e) => {
-      logger.debug(`Query: ${e.query}`);
-      logger.debug(`Params: ${e.params}`);
-      logger.debug(`Duration: ${e.duration}ms`);
-    });
+  // private setupEventHandlers(): void {
+  //   // Query logging
+  //   this.client.$on('query', (e) => {
+  //     logger.debug(`Query: ${e.query}`);
+  //     logger.debug(`Params: ${e.params}`);
+  //     logger.debug(`Duration: ${e.duration}ms`);
+  //   });
 
-    // Error logging
-    this.client.$on('error', (e) => {
-      logger.error('Prisma error:', e);
-      this.isConnected = false;
-    });
+  //   // Error logging
+  //   this.client.$on('error', (e) => {
+  //     logger.error('Prisma error:', e);
+  //     this.isConnected = false;
+  //   });
 
-    // Info logging
-    this.client.$on('info', (e) => {
-      logger.info('Prisma info:', e);
-    });
+  //   // Info logging
+  //   this.client.$on('info', (e) => {
+  //     logger.info('Prisma info:', e);
+  //   });
 
-    // Warning logging
-    this.client.$on('warn', (e) => {
-      logger.warn('Prisma warning:', e);
-    });
-  }
+  //   // Warning logging
+  //   this.client.$on('warn', (e) => {
+  //     logger.warn('Prisma warning:', e);
+  //   });
+  // }
 
   async connect(): Promise<void> {
     try {
@@ -97,17 +97,17 @@ class PrismaService {
   }
 
   // Transaction wrapper with error handling
-  async transaction<T>(
-    fn: (prisma: PrismaClient) => Promise<T>,
-    options?: { maxWait?: number; timeout?: number }
-  ): Promise<T> {
-    try {
-      return await this.client.$transaction(fn, options);
-    } catch (error) {
-      logger.error('Transaction failed:', error);
-      throw error;
-    }
-  }
+  // async transaction<T>(
+  //   fn: (prisma: PrismaClient) => Promise<T>,
+  //   options?: { maxWait?: number; timeout?: number }
+  // ): Promise<T> {
+  //   try {
+  //     return await this.client.$transaction(fn, options);
+  //   } catch (error) {
+  //     logger.error('Transaction failed:', error);
+  //     throw error;
+  //   }
+  // }
 
   // Raw query wrapper with error handling
   async rawQuery<T = any>(query: string, params?: any[]): Promise<T[]> {

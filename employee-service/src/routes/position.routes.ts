@@ -1,8 +1,9 @@
 // src/routes/position.routes.ts
 import express from 'express';
-import { PositionController } from '../controllers/position.controller';
+import type {Router} from 'express'
+import { PositionController } from '../controllers/position.controller.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 const controller = new PositionController();
 
 /**

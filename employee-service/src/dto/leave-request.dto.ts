@@ -1,114 +1,40 @@
-// src/routes/time-record.routes.ts
-import express from 'express';
-import { TimeRecordController } from '../controllers/time-record.controller';
+// src/dto/leave-request.dto.ts
+import * as Joi from 'joi';
 
-const router = express.Router();
-const controller = new TimeRecordController();
+export const CreateLeaveRequestDto = Joi.object({
+  companyId: Joi.string().uuid().required(),
+  employeeId: Joi.string().uuid().required(),
+  leaveType: Joi.string().max(50).required(),
+  startDate: Joi.date().required(),
+  endDate: Joi.date().required(),
+  totalDays: Joi.number().precision(1).required(),
+  reason: Joi.string().optional(),
+  status: Joi.string().max(50).default('pending'),
+  requestedAt: Joi.date().default(new Date()),
+  leaveBalanceBefore: Joi.number().precision(1).optional(),
+  leaveBalanceAfter: Joi.number().precision(1).optional(),
+});
 
-/**
- * @swagger
- * /time-records:
- *   post:
- *     summary: Create a new time record
- *     tags: [TimeRecords]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               companyId: { type: string }
- *               employeeId: { type: string }
- *               clockIn: { type: string, format: date-time }
- *     responses:
- *       201:
- *         description: Time record created
- */
-router.post('/', controller.create);
+export const UpdateLeaveRequestDto = Joi.object({
+  leaveType: Joi.string().max(50).optional(),
+  startDate: Joi.date().optional(),
+  endDate: Joi.date().optional(),
+  totalDays: Joi.number().precision(1).optional(),
+  reason: Joi.string().optional(),
+  status: Joi.string().max(50).optional(),
+  approvedById: Joi.string().uuid().optional(),
+  approvedAt: Joi.date().optional(),
+  rejectionReason: Joi.string().optional(),
+  leaveBalanceBefore: Joi.number().precision(1).optional(),
+  leaveBalanceAfter: Joi.number().precision(1).optional(),
+});
 
-/**
- * @swagger
- * /time-records:
- *   get:
- *     summary: Get all time records with filters
- *     tags: [TimeRecords]
- *     parameters:
- *       - in: query
- *         name: companyId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: List of time records
- */
-router.get('/', controller.findAll);
-
-/**
- * @swagger
- * /time-records/{id}:
- *   get:
- *     summary: Get time record by ID
- *     tags: [TimeRecords]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *       - in: query
- *         name: companyId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Time record details
- */
-router.get('/:id', controller.findOne);
-
-/**
- * @swagger
- * /time-records/{id}:
- *   put:
- *     summary: Update time record
- *     tags: [TimeRecords]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               clockOut: { type: string, format: date-time }
- *     responses:
- *       200:
- *         description: Time record updated
- */
-router.put('/:id', controller.update);
-
-/**
- * @swagger
- * /time-records/{id}:
- *   delete:
- *     summary: Delete time record
- *     tags: [TimeRecords]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *       - in: query
- *         name: companyId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Time record deleted
- */
-router.delete('/:id', controller.remove);
-
-export default router;
+export const LeaveRequestQueryDto = Joi.object({
+  companyId: Joi.string().uuid().required(),
+  employeeId: Joi.string().uuid().optional(),
+  status: Joi.string().optional(),
+  startDateFrom: Joi.date().optional(),
+  startDateTo: Joi.date().optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
+});

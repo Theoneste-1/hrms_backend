@@ -1,8 +1,14 @@
 auth-service/node_modules/
 auth-service/dist/
 auth-service/.env/
+employee-service/node_modules/
+employee-service/dist/
+employee-service/.env/
+
 .env
 /src/generated/prisma
 .vscode/
 .DS_Store
 */node_modules/*
+
+

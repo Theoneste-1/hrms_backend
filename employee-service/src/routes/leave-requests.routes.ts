@@ -1,8 +1,9 @@
 // src/routes/leave-request.routes.ts
-import express from 'express';
-import { LeaveRequestController } from '../controllers/leave-request.controller';
+import express from "express";
+import type { Router } from "express";
+import { LeaveRequestController } from "../controllers/leave-request.controller.js";
 
-const router = express.Router();
+const router: Router = express.Router();
 const controller = new LeaveRequestController();
 
 /**
@@ -28,7 +29,7 @@ const controller = new LeaveRequestController();
  *       201:
  *         description: Leave request created
  */
-router.post('/', controller.create);
+router.post("/", controller.create);
 
 /**
  * @swagger
@@ -45,7 +46,7 @@ router.post('/', controller.create);
  *       200:
  *         description: List of leave requests
  */
-router.get('/', controller.findAll);
+router.get("/", controller.findAll);
 
 /**
  * @swagger
@@ -66,7 +67,7 @@ router.get('/', controller.findAll);
  *       200:
  *         description: Leave request details
  */
-router.get('/:id', controller.findOne);
+router.get("/:id", controller.findOne);
 
 /**
  * @swagger
@@ -91,7 +92,7 @@ router.get('/:id', controller.findOne);
  *       200:
  *         description: Leave request updated
  */
-router.put('/:id', controller.update);
+router.put("/:id", controller.update);
 
 /**
  * @swagger
@@ -112,6 +113,6 @@ router.put('/:id', controller.update);
  *       200:
  *         description: Leave request deleted
  */
-router.delete('/:id', controller.remove);
+router.delete("/:id", controller.remove);
 
 export default router;

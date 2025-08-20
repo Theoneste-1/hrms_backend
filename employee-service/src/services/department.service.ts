@@ -1,44 +1,55 @@
 // src/services/department.service.ts
-import { prismaClient } from '../prismaClient';
-import { redisClient } from '../redisClient';
-import { logger } from '../logger';
+import { prismaService } from "../services/prisma.service.js";
+import { redisClient } from "../config/redisClient.js";
+import { logger } from "../config/logger.js";
 
 export class DepartmentService {
   async create(data: any) {
     try {
-      const department = await prismaClient.getClient().department.create({ data });
+      const department = await prismaService.department.create({ data });
       await this.invalidateCache(data.companyId);
       logger.info(`Department created: ${department.id}`);
       return department;
     } catch (error) {
-      logger.error('Error creating department:', error);
+      logger.error("Error creating department:", error);
       throw error;
     }
   }
 
   async findAll(query: any) {
     const { companyId, parentDepartmentId, page, limit } = query;
-    const cacheKey = `departments:${companyId}:${parentDepartmentId || 'all'}:page${page}:limit${limit}`;
-    
+    const cacheKey = `departments:${companyId}:${
+      parentDepartmentId || "all"
+    }:page${page}:limit${limit}`;
+
     try {
       const cached = await redisClient.get(cacheKey);
       if (cached) return JSON.parse(cached);
 
       const skip = (page - 1) * limit;
-      const where = { companyId };
-      if (parentDepartmentId) where.parentDepartmentId = parentDepartmentId;
+      let where;
+      if (parentDepartmentId) {
+        where = { companyId, parentDepartmentId };
+      } else {
+        where = { companyId };
+      }
 
-      const departments = await prismaClient.getClient().department.findMany({
+      const departments = await prismaService.department.findMany({
         where,
         skip,
         take: limit,
-        include: { parentDepartment: true, manager: true, subDepartments: true, employees: true },
+        include: {
+          parentDepartment: true,
+          manager: true,
+          subDepartments: true,
+          employees: true,
+        },
       });
 
       await redisClient.set(cacheKey, JSON.stringify(departments), 3600);
       return departments;
     } catch (error) {
-      logger.error('Error fetching departments:', error);
+      logger.error("Error fetching departments:", error);
       throw error;
     }
   }
@@ -49,12 +60,18 @@ export class DepartmentService {
       const cached = await redisClient.get(cacheKey);
       if (cached) return JSON.parse(cached);
 
-      const department = await prismaClient.getClient().department.findUnique({
+      const department = await prismaService.department.findUnique({
         where: { id, companyId },
-        include: { parentDepartment: true, manager: true, subDepartments: true, employees: true, positions: true },
+        include: {
+          parentDepartment: true,
+          manager: true,
+          subDepartments: true,
+          employees: true,
+          positions: true,
+        },
       });
 
-      if (!department) throw new Error('Department not found');
+      if (!department) throw new Error("Department not found");
 
       await redisClient.set(cacheKey, JSON.stringify(department), 3600);
       return department;
@@ -66,7 +83,7 @@ export class DepartmentService {
 
   async update(id: string, data: any) {
     try {
-      const department = await prismaClient.getClient().department.update({
+      const department = await prismaService.department.update({
         where: { id },
         data,
       });
@@ -81,7 +98,7 @@ export class DepartmentService {
 
   async remove(id: string, companyId: string) {
     try {
-      const department = await prismaClient.getClient().department.delete({
+      const department = await prismaService.department.delete({
         where: { id, companyId },
       });
       await this.invalidateCache(companyId);
@@ -94,7 +111,9 @@ export class DepartmentService {
   }
 
   private async invalidateCache(companyId: string) {
-    const keys = await redisClient.getClient().keys(`departments:${companyId}:*`);
+    const keys = await redisClient
+      .getClient()
+      .keys(`departments:${companyId}:*`);
     if (keys.length) await redisClient.getClient().del(keys);
   }
 }

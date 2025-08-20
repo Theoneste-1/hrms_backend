@@ -1,8 +1,9 @@
 // src/routes/department.routes.ts
 import express from 'express';
-import { DepartmentController } from '../controllers/department.controller';
+import type{ Router } from 'express';
+import { DepartmentController } from '../controllers/department.controller.js';
 
-const router = express.Router();
+const router:Router = express.Router();
 const controller = new DepartmentController();
 
 /**

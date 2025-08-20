@@ -1,8 +1,9 @@
 // src/routes/employee.routes.ts
 import express from 'express';
-import { EmployeeController } from '../controllers/employee.controller';
+import type {Router} from 'express'
+import { EmployeeController } from '../controllers/employee.controller.js';
 
-const router = express.Router();
+const router:Router = express.Router();
 const controller = new EmployeeController();
 
 /**
