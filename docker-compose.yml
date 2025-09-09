@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+       - "5672:5672"   # RabbitMQ default port
+       - "15672:15672" # RabbitMQ management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: theo123
+      POSTGRES_MULTIPLE_DATABASES: employee_service_db,learning_service_db,performance_service_db,payroll_service_db,auth_service_db,time_record_service_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5 
+  hrms_api_gateway:
+    build: ./hrms_api_gateway
+    container_name: hrms_api_gateway
+    ports:
+      - "4000:4000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+    
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  employee_service:
+    build: ./employee_service
+    container_name: employee_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/employee_service_db?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      # Add service-specific env vars
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  learning_service:
+    build: ./learning_service
+    container_name: learning_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/learning_service_db?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  performance_service:
+    build: ./performance_service
+    container_name: performance_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/performance_service_db?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  payroll_service:
+    build: ./payroll_service
+    container_name: payroll_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/payroll_service_db?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  auth_service:
+    build: ./auth_service
+    container_name: auth_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/auth_service_db?schema=public  # Or user_service_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MAILER_HOST: smtp.gmail.com
+      MAILER_PORT: 587
+      MAILER_PRODUCER_EMAIL: dufitimanatheoneste05@gmail.com
+      MAILER_PRODUCER_PASSWORD: bxas gclb owkx espa
+      FRONTEND_URL: http://localhost:3000
+      SERVER_HOST: http://localhost:3001
+      JWT_SECRET_KEY: your_jwt_secret_key
+      JWT_REFRESH_SECRET_KEY: your_jwt_refresh_secret_key
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+  time_record_service:
+    build: ./time_record_service
+    container_name: time_record_service
+    environment:
+      DATABASE_URL: postgresql://postgres:theo123@postgres:5432/time_record_service_db?schema=public
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm prisma migrate deploy && pnpm start:prod"
+
+volumes:
+  postgres-data:
