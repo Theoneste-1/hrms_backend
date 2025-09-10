@@ -1,9 +1,3 @@
-auth-service/node_modules/
-auth-service/dist/
-auth-service/.env/
-employee-service/node_modules/
-employee-service/dist/
-employee-service/.env/
 
 .env
 /src/generated/prisma
@@ -12,3 +6,18 @@ employee-service/.env/
 */node_modules/*
 
 
+
+# Ignore generated files in src/generated for all services
+*/src/generated/
+
+# Ignore node_modules in all subdirectories
+*/node_modules/
+
+# Ignore Prisma migrations in all subdirectories
+*/prisma/migrations/
+
+# Additional common ignores (optional)
+*.log
+*.env
+dist/
+build/
