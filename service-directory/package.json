@@ -1,10 +1,10 @@
 {
-    "name": "service-template",
-    "version": "1.0.0",
-    "scripts": {
-      "dev": "ts-node-dev src/index.ts",
-      "build": "tsc"
-    },
+  "name": "service-template",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node api.js && ts-node-dev src/index.ts",
+    "build": "tsc"
+  },
   "dependencies": {
     "@prisma/client": "^6.14.0",
     "bcryptjs": "^3.0.2",
@@ -16,18 +16,17 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1"
   },
-    "devDependencies": {
-        "@types/bcryptjs": "^2.4.6",
-        "@types/cors": "^2.8.19",
-        "@types/express": "^5.0.3",
-        "@types/jsonwebtoken": "^9.0.10",
-        "@types/morgan": "^1.9.10",
-        "@types/node": "^24.3.0",
-        "nodemon": "^3.1.10",
-        "prisma": "^6.14.0",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.9.2",
-        "tsx": "^4.20.2"
-      }
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.3.0",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.2"
   }
-  
+}
